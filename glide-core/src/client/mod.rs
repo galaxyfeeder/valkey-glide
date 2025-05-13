@@ -734,12 +734,16 @@ async fn create_cluster_client(
         builder = builder.client_name(client_name);
     }
     if tls_mode != TlsMode::NoTls {
-        let tls = if tls_mode == TlsMode::SecureTls {
-            redis::cluster::TlsMode::Secure
+        if let Some(certificates) = request.tls_certificates {
+            builder = builder.certs(certificates);
         } else {
-            redis::cluster::TlsMode::Insecure
-        };
-        builder = builder.tls(tls);
+            let tls = if tls_mode == TlsMode::SecureTls {
+                redis::cluster::TlsMode::Secure
+            } else {
+                redis::cluster::TlsMode::Insecure
+            };
+            builder = builder.tls(tls);
+        }
     }
     if let Some(pubsub_subscriptions) = redis_connection_info.pubsub_subscriptions.clone() {
         builder = builder.pubsub_subscriptions(pubsub_subscriptions);

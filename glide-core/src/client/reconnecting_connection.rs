@@ -197,13 +197,20 @@ fn get_client(
     address: &NodeAddress,
     tls_mode: TlsMode,
     redis_connection_info: redis::RedisConnectionInfo,
+    tls_certificates: Option<redis::TlsCertificates>,
 ) -> redis::Client {
-    redis::Client::open(super::get_connection_info(
+    let connection_info = super::get_connection_info(
         address,
         tls_mode,
         redis_connection_info,
-    ))
-    .unwrap() // can unwrap, because [open] fails only on trying to convert input to ConnectionInfo, and we pass ConnectionInfo.
+    );
+
+    match tls_certificates {
+        Some(certs) => redis::Client::build_with_tls(connection_info, certs)
+            .unwrap(), // can unwrap, because [build_with_tls] fails only on trying to convert input to ConnectionInfo, and we pass ConnectionInfo.
+        None => redis::Client::open(connection_info)
+            .unwrap() // can unwrap, because [open] fails only on trying to convert input to ConnectionInfo, and we pass ConnectionInfo.
+    }
 }
 
 impl ConnectionBackend {
@@ -222,13 +229,14 @@ impl ReconnectingConnection {
         push_sender: Option<mpsc::UnboundedSender<PushInfo>>,
         discover_az: bool,
         connection_timeout: Duration,
+        tls_certificates: Option<redis::TlsCertificates>,
     ) -> Result<ReconnectingConnection, (ReconnectingConnection, RedisError)> {
         log_debug(
             "connection creation",
             format!("Attempting connection to {address}"),
         );
 
-        let connection_info = get_client(address, tls_mode, redis_connection_info);
+        let connection_info = get_client(address, tls_mode, redis_connection_info, tls_certificates);
         let backend = ConnectionBackend {
             connection_info: RwLock::new(connection_info),
             connection_available_signal: ManualResetEvent::new(true),

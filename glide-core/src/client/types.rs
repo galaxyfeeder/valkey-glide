@@ -27,6 +27,7 @@ pub struct ConnectionRequest {
     pub inflight_requests_limit: Option<u32>,
     pub otel_endpoint: Option<String>,
     pub otel_span_flush_interval_ms: Option<u64>,
+    pub tls_certificates: Option<redis::TlsCertificates>,
 }
 
 #[derive(PartialEq, Eq, Clone, Default, Debug)]
@@ -232,6 +233,13 @@ impl From<protobuf::ConnectionRequest> for ConnectionRequest {
         let otel_endpoint = chars_to_string_option(&value.opentelemetry_config.collector_end_point);
         let otel_span_flush_interval_ms = value.opentelemetry_config.span_flush_interval;
 
+        let tls_certificates = value.tls_certificates.0.map(|tls_certs| {
+            redis::TlsCertificates {
+                client_tls: None,
+                root_cert: Some(tls_certs.root_cert.to_vec()),
+            }
+        });
+
         ConnectionRequest {
             read_from,
             client_name,
@@ -249,6 +257,7 @@ impl From<protobuf::ConnectionRequest> for ConnectionRequest {
             inflight_requests_limit,
             otel_endpoint,
             otel_span_flush_interval_ms,
+            tls_certificates,
         }
     }
 }

@@ -163,6 +163,7 @@ impl StandaloneClient {
                     &push_sender,
                     discover_az,
                     connection_timeout,
+                    &connection_request.tls_certificates,
                 )
                 .await
                 .map_err(|err| (format!("{}:{}", address.host, address.port), err))
@@ -639,6 +640,7 @@ async fn get_connection_and_replication_info(
     push_sender: &Option<mpsc::UnboundedSender<PushInfo>>,
     discover_az: bool,
     connection_timeout: Duration,
+    tls_certificates: &Option<redis::TlsCertificates>,
 ) -> Result<(ReconnectingConnection, Value), (ReconnectingConnection, RedisError)> {
     let result = ReconnectingConnection::new(
         address,
@@ -648,6 +650,7 @@ async fn get_connection_and_replication_info(
         push_sender.clone(),
         discover_az,
         connection_timeout,
+        tls_certificates.clone(),
     )
     .await;
     let reconnecting_connection = match result {
