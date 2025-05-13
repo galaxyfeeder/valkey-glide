@@ -105,7 +105,19 @@ def generate_tls_certs():
     ext_file = f"{TLS_FOLDER}/openssl.cnf"
 
     f = open(ext_file, "w")
-    f.write("keyUsage = digitalSignature, keyEncipherment")
+    f.write("""[req]
+x509_extensions = v3_req
+prompt = no
+
+[v3_req]
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
+""")
     f.close()
 
     def make_key(name: str, size: int):
@@ -172,6 +184,8 @@ def generate_tls_certs():
             "/O=Valkey GLIDE Test/CN=Generic-cert",
             "-key",
             SERVER_KEY,
+            "-config",
+            ext_file,
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -201,6 +215,8 @@ def generate_tls_certs():
             ext_file,
             "-out",
             SERVER_CRT,
+            "-extensions",
+            "v3_req"
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -1049,7 +1065,7 @@ def main():
         "-log",
         "--loglevel",
         dest="log",
-        default="info",
+        default="debug",
         help="Provide logging level. Example --loglevel debug (default: %(default)s)",
     )
 

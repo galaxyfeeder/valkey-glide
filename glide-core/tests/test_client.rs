@@ -25,6 +25,7 @@ pub(crate) mod shared_client_tests {
     use glide_core::Telemetry;
     use redis::{cluster_topology::get_slot, cmd};
     use std::collections::HashMap;
+    use std::fs;
 
     use super::*;
     use glide_core::client::{Client, DEFAULT_RESPONSE_TIMEOUT};
@@ -341,6 +342,29 @@ pub(crate) mod shared_client_tests {
                         username: Some("AuthorizedUsername".to_string()),
                         ..Default::default()
                     }),
+                    ..Default::default()
+                },
+            )
+            .await;
+            let key = generate_random_string(6);
+            send_set_and_get(test_basics.client.clone(), key.to_string()).await;
+        });
+    }
+
+    #[rstest]
+    #[serial_test::serial]
+    #[timeout(SHORT_CLUSTER_TEST_TIMEOUT)]
+    fn test_root_cert_configuration(
+        #[values(false, true)] use_cluster: bool,
+    ) {
+        block_on_all(async {
+            let test_basics = setup_test_basics(
+                use_cluster,
+                TestConfiguration {
+                    use_tls: true,
+                    // This could be not created once this is run
+                    // root_cert: Some(fs::read_to_string("../utils/tls_crts/ca.crt").unwrap()),
+                    shared_server: false,
                     ..Default::default()
                 },
             )

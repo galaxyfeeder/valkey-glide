@@ -1,6 +1,7 @@
 // Copyright Valkey GLIDE Project Contributors - SPDX Identifier: Apache-2.0
 
 #![allow(dead_code)]
+use bytes::Bytes;
 use futures::Future;
 use glide_core::{
     client::{Client, StandaloneClient},
@@ -662,6 +663,12 @@ pub fn create_connection_request(
         connection_request.client_az = client_az.deref().into();
     }
 
+    if let Some(root_cert) = &configuration.root_cert {
+        let mut tls_certificates = connection_request::TlsCertificates::new();
+        tls_certificates.root_cert = Bytes::from(root_cert.clone()).into();
+        connection_request.tls_certificates = protobuf::MessageField::from_option(Some(tls_certificates));
+    }
+
     connection_request
 }
 
@@ -678,6 +685,7 @@ pub struct TestConfiguration {
     pub client_name: Option<String>,
     pub client_az: Option<String>,
     pub protocol: ProtocolVersion,
+    pub root_cert: Option<String>,
 }
 
 pub(crate) async fn setup_test_basics_internal(configuration: &TestConfiguration) -> TestBasics {
